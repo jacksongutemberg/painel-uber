@@ -10,7 +10,7 @@ st.title("🚗 Painel do Motorista")
 # === CONFIGURAÇÕES ===
 st.sidebar.header("⚙️ Configurações")
 
-consumo_km_l = st.sidebar.number_input("Consumo do carro (km/L)", value=12.0)
+
 preco_gasolina = st.sidebar.number_input("Preço da gasolina (R$)", value=7.25)
 meta_dia = st.sidebar.number_input("Meta diária (R$)", value=200.0)
 
