@@ -55,17 +55,6 @@ if not df.empty:
     df_sorted = df.sort_values("hora")
     st.line_chart(df_sorted.set_index("hora")["ganho_total"])
 
-# === ABASTECIMENTO ===
-st.subheader("⛽ Abastecimento")
-
-if "abastecimento" not in st.session_state:
-    st.session_state.abastecimento = 0.0
-
-valor_abastecido = st.number_input("Quanto abasteceu hoje (R$)", min_value=0.0)
-
-if st.button("Registrar abastecimento"):
-    st.session_state.abastecimento += valor_abastecido
-    st.success("Abastecimento registrado!")
 
 # === NOVA CORRIDA ===
 st.subheader("➕ Nova corrida")
