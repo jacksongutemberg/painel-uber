@@ -36,21 +36,17 @@ st.subheader("💰 Resumo do dia")
 
 if not df.empty:
     total = df["ganho_total"].sum()
-    lucro = df["lucro"].sum()
-    km_total = df["km"].sum()
-    media_hora = (df["ganho_total"] / (df["tempo_min"] / 60)).mean()
+    custo_real = df["custo"].sum()
+    lucro_real = total - custo_real
+    caixa = total - st.session_state.abastecimento
 
     col1, col2 = st.columns(2)
     col1.metric("Total ganho", f"R$ {total:.2f}")
-    col2.metric("Lucro", f"R$ {lucro:.2f}")
+    col2.metric("Lucro real", f"R$ {lucro_real:.2f}")
 
     col3, col4 = st.columns(2)
-    col3.metric("Média/hora", f"R$ {media_hora:.2f}")
-    col4.metric("Km rodados", f"{km_total:.1f} km")
-
-    progresso = (total / meta_dia) * 100
-    st.progress(min(int(progresso), 100))
-    st.write(f"Meta: {progresso:.1f}% concluída")
+    col3.metric("Abastecimento", f"R$ {st.session_state.abastecimento:.2f}")
+    col4.metric("Caixa do dia", f"R$ {caixa:.2f}")
 
 # === GRÁFICO ===
 st.subheader("📊 Ganho ao longo do dia")
@@ -62,10 +58,14 @@ if not df.empty:
 # === ABASTECIMENTO ===
 st.subheader("⛽ Abastecimento")
 
-valor_abastecido = st.number_input("Quanto você abasteceu (R$)", min_value=0.0)
+if "abastecimento" not in st.session_state:
+    st.session_state.abastecimento = 0.0
+
+valor_abastecido = st.number_input("Quanto abasteceu hoje (R$)", min_value=0.0)
 
 if st.button("Registrar abastecimento"):
-    st.success(f"Abastecimento de R$ {valor_abastecido:.2f} registrado!")
+    st.session_state.abastecimento += valor_abastecido
+    st.success("Abastecimento registrado!")
 
 # === NOVA CORRIDA ===
 st.subheader("➕ Nova corrida")
