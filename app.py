@@ -135,4 +135,18 @@ with st.form("corrida"):
 
         nova.to_csv("corridas.csv", mode="a", header=False, index=False)
         st.success("Corrida adicionada!")
+        st.rerun() 
+
+st.subheader("✏️ Editar corridas (modo profissional)")
+
+if not df.empty:
+    df_editado = st.data_editor(
+        df,
+        num_rows="dynamic",
+        use_container_width=True
+    )
+
+    if st.button("💾 Salvar alterações"):
+        df_editado.to_csv("corridas.csv", index=False)
+        st.success("Alterações salvas!")
         st.rerun()
