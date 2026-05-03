@@ -15,8 +15,8 @@ gasolina = st.sidebar.number_input("Gasolina (R$)", value=7.25)
 meta = st.sidebar.number_input("Meta diária (R$)", value=200.0)
 
 # ================= SESSION =================
-if "abastecimento" not in st.session_state:
-    st.session_state.abastecimento = 0.0
+if "abastecimento_total" not in st.session_state:
+    st.session_state.abastecimento_total = 0.0
 
 # ================= ARQUIVO =================
 if not os.path.exists("corridas.csv"):
@@ -27,6 +27,7 @@ df = pd.read_csv("corridas.csv")
 
 # ================= TRATAMENTO =================
 if not df.empty:
+    df["data"] = pd.to_datetime(df["data"])
     df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
     df["dinamica"] = pd.to_numeric(df["dinamica"], errors="coerce").fillna(0)
     df["km"] = pd.to_numeric(df["km"], errors="coerce").fillna(0)
@@ -35,53 +36,81 @@ if not df.empty:
     df["ganho_total"] = df["valor"] + df["dinamica"]
     df["custo"] = (df["km"] / consumo) * gasolina
     df["lucro"] = df["ganho_total"] - df["custo"]
+    df["ganho_km"] = df["ganho_total"] / df["km"].replace(0, 1)
+
+    hoje = pd.Timestamp.now().date()
+    semana = pd.Timestamp.now() - pd.Timedelta(days=7)
+    mes = pd.Timestamp.now().replace(day=1)
+
+    df_hoje = df[df["data"].dt.date == hoje]
+    df_semana = df[df["data"] >= semana]
+    df_mes = df[df["data"] >= mes]
 
 # ================= ABASTECIMENTO =================
 st.subheader("⛽ Abastecimento")
 
-col_a, col_b = st.columns(2)
+valor_abastecido = st.number_input("Valor abastecido (R$)", min_value=0.0)
 
-with col_a:
-    valor_abastecido = st.number_input("Valor abastecido (R$)", min_value=0.0)
+if st.button("Adicionar abastecimento"):
+    st.session_state.abastecimento_total += valor_abastecido
+    st.success("Abastecimento registrado!")
 
-with col_b:
-    if st.button("Adicionar abastecimento"):
-        st.session_state.abastecimento += valor_abastecido
-        st.success("Abastecimento registrado!")
+st.write(f"Total abastecido: R$ {st.session_state.abastecimento_total:.2f}")
 
 # ================= RESUMO =================
-st.subheader("💰 Resumo")
+st.subheader("💰 Hoje")
 
-if not df.empty:
-    total = df["ganho_total"].sum()
-    custo = df["custo"].sum()
-    lucro = df["lucro"].sum()
-    km_total = df["km"].sum()
-    media_hora = (df["ganho_total"] / (df["tempo"] / 60)).mean()
-    caixa = total - st.session_state.abastecimento
+if not df.empty and not df_hoje.empty:
+    total = df_hoje["ganho_total"].sum()
+    lucro = df_hoje["lucro"].sum()
+    km_total = df_hoje["km"].sum()
+    ganho_km = df_hoje["ganho_total"].sum() / max(km_total, 1)
+    dinamica_total = df_hoje["dinamica"].sum()
 
     col1, col2 = st.columns(2)
     col1.metric("Total ganho", f"R$ {total:.2f}")
     col2.metric("Lucro real", f"R$ {lucro:.2f}")
 
     col3, col4 = st.columns(2)
-    col3.metric("Km rodados", f"{km_total:.1f}")
-    col4.metric("Média/hora", f"R$ {media_hora:.2f}")
-
-    col5, col6 = st.columns(2)
-    col5.metric("Abastecimento", f"R$ {st.session_state.abastecimento:.2f}")
-    col6.metric("Caixa do dia", f"R$ {caixa:.2f}")
+    col3.metric("Ganho por km", f"R$ {ganho_km:.2f}")
+    col4.metric("Dinâmica", f"R$ {dinamica_total:.2f}")
 
     progresso = min(int((total / meta) * 100), 100)
     st.progress(progresso)
     st.write(f"Meta: {progresso}%")
 
-# ================= GRÁFICO =================
-st.subheader("📊 Ganho ao longo do dia")
+# ================= SEMANA =================
+st.subheader("📅 Semana")
 
 if not df.empty:
-    df_sorted = df.sort_values("hora")
-    st.line_chart(df_sorted.set_index("hora")["ganho_total"])
+    st.write(f"Total: R$ {df_semana['ganho_total'].sum():.2f}")
+    st.write(f"Dinâmica: R$ {df_semana['dinamica'].sum():.2f}")
+
+# ================= MÊS =================
+st.subheader("📆 Mês")
+
+if not df.empty:
+    st.write(f"Total: R$ {df_mes['ganho_total'].sum():.2f}")
+    st.write(f"Dinâmica: R$ {df_mes['dinamica'].sum():.2f}")
+
+# ================= RANKING =================
+st.subheader("🏆 Ranking de dias")
+
+if not df.empty:
+    ranking = df.groupby(df["data"].dt.date)["ganho_total"].sum().sort_values(ascending=False)
+    st.dataframe(ranking)
+
+# ================= TABELA =================
+st.subheader("💸 Corridas")
+
+if not df.empty:
+    st.dataframe(df[["data", "hora", "ganho_total", "km", "lucro", "ganho_km"]])
+
+# ================= GRÁFICO =================
+st.subheader("📊 Evolução")
+
+if not df.empty:
+    st.line_chart(df.groupby(df["data"].dt.date)["ganho_total"].sum())
 
 # ================= NOVA CORRIDA =================
 st.subheader("➕ Nova corrida")
